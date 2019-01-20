@@ -6,7 +6,7 @@ This module is built on top of CmdStan v2.18.1.
 
 ## Installation
 
-This module is published in [PowerShell Gallery](https://www.powershellgallery.com/packages/psstan).
+This module is available in [PowerShell Gallery](https://www.powershellgallery.com/packages/psstan).
 
 ```powershell
 Install-Module -Scope CurrentUser psstan
@@ -14,7 +14,7 @@ Install-Module -Scope CurrentUser psstan
 
 ## Configuration
 
-1. Download and install CmdStan according to the guidance of [the official site of CmdStan](https://mc-stan.org/users/interfaces/cmdstan.html). The documentation "CmdStan Interface User's Guide" given on [the release page](https://github.com/stan-dev/cmdstan/releases) contains the step-by-step instructions to install CmdStan in Windows.
+1. Download and install CmdStan according to the guidance of [the official site of CmdStan](https://mc-stan.org/users/interfaces/cmdstan.html). The documentation "CmdStan Interface User's Guide" available on [the release page](https://github.com/stan-dev/cmdstan/releases) contains the step-by-step instructions to install CmdStan in Windows.
 
 2. Define the variables `$PSSTAN_PATH` and `$PSSTAN_TOOLS_PATHS` (in your `profile.ps1`, for example). The former should be set to the directory where CmdStan is installed. The latter an array of the directories where `g++` and `make` to compile Stan models are installed. For example:
 
@@ -83,7 +83,7 @@ PS>
 
 ### Example 2
 
-The following example shows how to create R data format files by the `ConvertTo-StanData` cmdlet.
+The following example shows how to prapare R data format files by the `ConvertTo-StanData` cmdlet.
 
 ```PowerShell
 PS> Get-Content example.csv
@@ -96,6 +96,22 @@ PS> Get-Content example.data.R
 age <- c(21, 34, 40)
 income <- c(413, 599, 779)
 N <- 3
+```
+
+### Example 3
+
+The following example shows to how to generate records in the R data format programatically.
+
+```PowerShell
+PS> New-StanData array 10, 20, 30, 40 | Set-Content example2.data.R
+PS> New-StanData struct 1, 0, 0, 0, 1, 0, 0, 0,0, 1 -Dimensions 3, 3 | Add-Content example2.data.R
+PS> New-StanData zero_values -Type double -Count 10 | Add-Content example2.data.R
+PS> New-StanData range -First 100 -Last 200 | Add-Content example2.data.R
+PS> Get-Content example2.data.R
+array <- c(10, 20, 30, 40)
+struct <- structure(c(1, 0, 0, 0, 1, 0, 0, 0, 0, 1), .Dim = c(3, 3))
+zero_values <- double(10)
+range <- 100:200
 ```
 
 ## License
