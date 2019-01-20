@@ -2,12 +2,16 @@ using namespace System.Collections.Generic
 
 Set-StrictMode -Version Latest
 
-$global:PSSTAN_TOOLS_PATHS = @(
-    "$HOME\Documents\apps\RTools\bin",
-    "$HOME\Documents\apps\Rtools\mingw_64\bin"
-)
+if (-not (Test-Path variable:PSSTAN_PATH)) {
+    $global:PSSTAN_PATH = "C:\cmdstan"
+}
 
-$global:PSSTAN_PATH = "$HOME\work\stan\cmdstan"
+if (-not (Test-Path variable:PSSTAN_TOOLS_PATHS)) {
+    $global:PSSTAN_TOOLS_PATHS = @(
+        "C:\RTools\bin",
+        "C:\Rtools\mingw_64\bin"
+    )
+}
 
 function New-StanExecutable {
     [CmdletBinding()]
