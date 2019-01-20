@@ -12,7 +12,7 @@ RootModule = 'psstan.psm1'
 ModuleVersion = '0.1.0'
 
 # Supported PSEditions
-CompatiblePSEditions = 'Desktop'
+#CompatiblePSEditions = ''
 
 # ID used to uniquely identify this module
 GUID = 'c11a598c-5862-4190-aeb1-8ca47e5d05d2'
