@@ -11,8 +11,11 @@ $global:PSSTAN_PATH = "$HOME\work\stan\cmdstan"
 
 function New-StanExecutable {
     [CmdletBinding()]
+    [OutputType([string])]
     param(
+        [Parameter(Position = 0, Mandatory = $true)]
         [string]$Path,
+        [Parameter(Position = 1, Mandatory = $false)]
         [string]$MakeOptions
     )
 
@@ -64,6 +67,7 @@ function script:Invoke-StanSummary {
 
 function Show-StanSummary {
     [CmdletBinding()]
+    [OutputType([string])]
     param(
         [Parameter(Position = 0, Mandatory = $true)]
         [string]$Path,
@@ -83,6 +87,7 @@ function Show-StanSummary {
 
 function Get-StanSummary {
     [CmdletBinding()]
+    [OutputType([PSObject])]
     param(
         [Parameter(Position = 0, Mandatory = $true)]
         [string]$Path,
@@ -201,6 +206,7 @@ class StanStructureData : StanData {
 
 function New-StanData {
     [CmdletBinding(DefaultParameterSetName = "ArrayValue")]
+    [OutputType([StanData])]
     param(
         [Parameter(Position = 0, Mandatory = $true, ParameterSetName = "ArrayValue")]
         [Parameter(Position = 0, Mandatory = $true, ParameterSetName = "ZeroValue")]
@@ -264,6 +270,7 @@ function script:Write-StanData {
 
 function ConvertTo-StanData {
     [CmdletBinding()]
+    [OutputType([StanData])]
     param(
         [Parameter(Position = 0, Mandatory = $true, ValueFromPipeline = $true)]
         [PSObject]$InputObject,
