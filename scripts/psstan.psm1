@@ -2,12 +2,12 @@ using namespace System.Collections.Generic
 
 Set-StrictMode -Version Latest
 
-$PSSTAN_TOOLS_PATHS = @(
+$global:PSSTAN_TOOLS_PATHS = @(
     "$HOME\Documents\apps\RTools\bin",
     "$HOME\Documents\apps\Rtools\mingw_64\bin"
 )
 
-$PSSTAN_PATH = "$HOME\work\stan\cmdstan"
+$global:PSSTAN_PATH = "$HOME\work\stan\cmdstan"
 
 function New-StanExecutable {
     [CmdletBinding()]
@@ -21,8 +21,8 @@ function New-StanExecutable {
     $Path = $Path -Replace "\\", "/"
     $oldPath = $env:Path
     try {
-        $env:Path = $PSSTAN_TOOLS_PATHS -join ";"
-        Push-Location $PSSTAN_PATH
+        $env:Path = $global:PSSTAN_TOOLS_PATHS -join ";"
+        Push-Location $global:PSSTAN_PATH
         Invoke-Expression "make $Path $MakeOptions"
     }
     finally {
@@ -53,8 +53,8 @@ function script:Invoke-StanSummary {
 
     $oldPath = $env:Path
     try {
-        $env:Path = $PSSTAN_TOOLS_PATHS -join ";"
-        $commandLine = "$PSSTAN_PATH\bin\stansummary '$Path' $($options -join " ")"
+        $env:Path = $global:PSSTAN_TOOLS_PATHS -join ";"
+        $commandLine = "$global:PSSTAN_PATH\bin\stansummary '$Path' $($options -join " ")"
         Invoke-Expression $commandLine
     }
     finally {
