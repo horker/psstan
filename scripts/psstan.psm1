@@ -69,6 +69,80 @@ function script:Invoke-StanSummary {
     }
 }
 
+function script:Strip-Output {
+    param(
+        [string]$InFIle,
+        [string]$OutFile,
+        [bool]$Append
+    )
+
+    try {
+        $f = New-Object IO.StreamWriter $OutFile, $Append
+        $headerAdded = $Append
+
+        foreach ($line in (Get-Content $InFile)) {
+            if ($line[0] -eq "#") {
+                continue
+            }
+            if ($line -Match "^lp__,") {
+                if ($HeaderAdded) {
+                    continue
+                }
+                $HeaderAdded = $true
+            }
+            $f.WriteLine($Line)
+        }
+    }
+    finally {
+        $f.Close()
+    }
+
+}
+function Invoke-StanSampling {
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0, Mandatory = $true)]
+        [string]$ModelPath,
+        [Parameter(Position = 1, Mandatory = $true)]
+        [string]$DataFile,
+        [int]$ChainCount = 1,
+        [int]$NumSamples = 1000,
+        [int]$NumWarmup = 1000,
+        [bool]$SaveWarmup = $false,
+        [int]$Thin = 1,
+        [int]$RandomSeed = 1234,
+        [string]$OutputFile = "output{0}.csv",
+        [string]$CombinedFile = "combined.csv"
+    )
+
+    $ModelPath = Resolve-Path $ModelPath
+    $DataFile = Resolve-Path $DataFile
+    $OutputFile = try { Resolve-Path $OutputFile } catch { $_.TargetObject }
+    $CombinedFile = try { Resolve-Path $CombinedFile } catch { $_.TargetObject }
+
+    if ($ModelPath.EndsWith(".exe")) {
+        $executable = $ModelPath
+    }
+    else {
+        New-StanExecutable $ModelPath
+        $executable = $ModelPath -replace "\.[^.]+$", ".exe"
+    }
+    $executable -Replace "\\", "/"
+
+    $commandLine = "$executable sample num_samples=$NumSamples num_warmup=$NumWarmup save_warmup=$([int]$SaveWarmup) thin=$Thin data file='$DataFile' random seed=$RandomSeed output file='$OutputFile' id={1}"
+    Write-Verbose $commandLine
+
+    for ($chain = 1; $chain -le $ChainCount; ++$chain) {
+        $c = $commandLine -f "_orig$chain", $chain
+        Invoke-Expression $c
+        Strip-Output ($OutputFile -f "_orig$chain") ($OutputFile -f $chain)
+    }
+
+    for ($chain = 1; $chain -le $ChainCount; ++$chain) {
+        Get-Content ($OutputFile -f $chain) | Select-Object -Skip 1 | Add-Content $CombinedFile
+    }
+}
+
 function Show-StanSummary {
     [CmdletBinding()]
     [OutputType([string])]
