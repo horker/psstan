@@ -23,7 +23,7 @@ function New-StanExecutable {
         [string]$MakeOptions
     )
 
-    $Path = try { Resolve-Path $Path } catch { $_.TargetObject }
+    $Path = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Path)
     $Path = $Path -Replace "\.stan$", ".exe"
     $Path = $Path -Replace "\\", "/"
     $oldPath = $env:Path
@@ -117,8 +117,8 @@ function Invoke-StanSampling {
 
     $ModelPath = Resolve-Path $ModelPath
     $DataFile = Resolve-Path $DataFile
-    $OutputFile = try { Resolve-Path $OutputFile } catch { $_.TargetObject }
-    $CombinedFile = try { Resolve-Path $CombinedFile } catch { $_.TargetObject }
+    $OutputFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputFile)
+    $CombinedFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($CombinedFile)
 
     if ($ModelPath.EndsWith(".exe")) {
         $executable = $ModelPath
