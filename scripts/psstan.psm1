@@ -127,7 +127,6 @@ function Invoke-StanSampling {
         New-StanExecutable $ModelPath
         $executable = $ModelPath -replace "\.[^.]+$", ".exe"
     }
-    $executable -Replace "\\", "/"
 
     $commandLine = "$executable sample num_samples=$NumSamples num_warmup=$NumWarmup save_warmup=$([int]$SaveWarmup) thin=$Thin data file='$DataFile' random seed=$RandomSeed output file='$OutputFile' id={1}"
     Write-Verbose $commandLine
