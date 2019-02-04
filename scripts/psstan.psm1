@@ -104,8 +104,8 @@ function script:Strip-Output {
     finally {
         $f.Close()
     }
-
 }
+
 function Start-StanSampling {
     [CmdletBinding()]
     param(
@@ -114,19 +114,32 @@ function Start-StanSampling {
         [Parameter(Position = 1, Mandatory = $true)]
         [string]$DataFile,
         [int]$ChainCount = 1,
+        [string]$OutputFile = "output{0}.csv",
+        [string]$CombinedFile = "combined.csv",
+        [string]$ConsoleFile = "console_output{0}.csv",
+        [switch]$Parallel,
         [int]$NumSamples = 1000,
         [int]$NumWarmup = 1000,
         [bool]$SaveWarmup = $false,
         [int]$Thin = 1,
-        [int]$RandomSeed = 1234,
-        [string]$OutputFile = "output{0}.csv",
-        [string]$CombinedFile = "combined.csv"
+        [int]$RandomSeed = 1234
     )
+
+    if ($OutputFile.IndexOf("{0}") -eq -1) {
+        Write-Error "The -OutputFile parameter should contain '{0}' as placeholder of the chain count"
+        exit
+    }
+
+    if ($ConsoleFile.IndexOf("{0}") -eq -1) {
+        Write-Error "The -ConsoleFile parameter should contain '{0}' as placeholder of the chain count"
+        exit
+    }
 
     $ModelPath = Resolve-Path $ModelPath
     $DataFile = Resolve-Path $DataFile
     $OutputFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputFile)
     $CombinedFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($CombinedFile)
+    $ConsoleFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ConsoleFile)
 
     if ($ModelPath.EndsWith(".exe")) {
         $executable = $ModelPath
@@ -139,10 +152,44 @@ function Start-StanSampling {
     $commandLine = "$executable sample num_samples=$NumSamples num_warmup=$NumWarmup save_warmup=$([int]$SaveWarmup) thin=$Thin data file='$DataFile' random seed=$RandomSeed output file='$OutputFile' id={1}"
     Write-Verbose $commandLine
 
-    for ($chain = 1; $chain -le $ChainCount; ++$chain) {
-        $c = $commandLine -f "_orig$chain", $chain
-        Invoke-Expression $c
-        Strip-Output ($OutputFile -f "_orig$chain") ($OutputFile -f $chain) $chain
+    if ($Parallel -and $ChainCount -gt 1) {
+        $tasks = @()
+
+        try {
+            for ($chain = 2; $chain -le $ChainCount; ++$chain) {
+                $c = $commandLine -f "_orig$chain", $chain
+                $c = $c + " > " + ($ConsoleFile -f $chain)
+                Write-Verbose $c
+
+                $ps = [PowerShell]::Create("NewRunspace").AddScript($c)
+
+                $tasks += @{
+                    PowerShell = $ps
+                    Result = $ps.BeginInvoke()
+                }
+            }
+
+            $c = $commandLine -f "_orig1", 1
+            Invoke-Expression $c | Tee-Object -LiteralPath ($ConsoleFile -f 1)
+        }
+        finally {
+            foreach ($t in $tasks) {
+                [void]$t["PowerShell"].EndInvoke($t["Result"])
+                $t["PowerShell"].Dispose()
+            }
+        }
+
+        for ($chain = 1; $chain -le $ChainCount; ++$chain) {
+            Strip-Output ($OutputFile -f "_orig$chain") ($OutputFile -f $chain) $chain
+        }
+    }
+    else {
+        for ($chain = 1; $chain -le $ChainCount; ++$chain) {
+            $c = $commandLine -f "_orig$chain", $chain
+            Write-Verbose $c
+            Invoke-Expression $c
+            Strip-Output ($OutputFile -f "_orig$chain") ($OutputFile -f $chain) $chain
+        }
     }
 
     Get-Content ($OutputFile -f 1) -Total 1 | Set-Content $CombinedFile
