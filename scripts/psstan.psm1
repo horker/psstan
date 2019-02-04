@@ -73,13 +73,15 @@ function script:Strip-Output {
     param(
         [string]$InFIle,
         [string]$OutFile,
+        [int]$Chain,
         [bool]$Append
     )
 
+    $f = New-Object IO.StreamWriter $OutFile, $Append
     try {
-        $f = New-Object IO.StreamWriter $OutFile, $Append
         $headerAdded = $Append
 
+        $sample = 1
         foreach ($line in (Get-Content $InFile)) {
             if ($line[0] -eq "#") {
                 continue
@@ -89,8 +91,14 @@ function script:Strip-Output {
                     continue
                 }
                 $HeaderAdded = $true
+                $f.Write("chain__,sample__,")
+                $f.WriteLine($Line)
             }
-            $f.WriteLine($Line)
+            else {
+                $f.Write([string]$Chain + "," + [string]$sample + ",")
+                $f.WriteLine($Line)
+                ++$sample
+            }
         }
     }
     finally {
@@ -98,7 +106,7 @@ function script:Strip-Output {
     }
 
 }
-function Invoke-StanSampling {
+function Start-StanSampling {
     [CmdletBinding()]
     param(
         [Parameter(Position = 0, Mandatory = $true)]
@@ -134,9 +142,10 @@ function Invoke-StanSampling {
     for ($chain = 1; $chain -le $ChainCount; ++$chain) {
         $c = $commandLine -f "_orig$chain", $chain
         Invoke-Expression $c
-        Strip-Output ($OutputFile -f "_orig$chain") ($OutputFile -f $chain)
+        Strip-Output ($OutputFile -f "_orig$chain") ($OutputFile -f $chain) $chain
     }
 
+    Get-Content ($OutputFile -f 1) -Total 1 | Set-Content $CombinedFile
     for ($chain = 1; $chain -le $ChainCount; ++$chain) {
         Get-Content ($OutputFile -f $chain) | Select-Object -Skip 1 | Add-Content $CombinedFile
     }

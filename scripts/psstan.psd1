@@ -76,7 +76,7 @@ FunctionsToExport = @(
     "New-StanData"
     "ConvertTo-StanData"
     "New-StanExecutable"
-    "Invoke-StanSampling"
+    "Start-StanSampling"
     "Get-StanSummary"
     "Show-StanSummary"
 )
