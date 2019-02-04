@@ -122,7 +122,8 @@ function Start-StanSampling {
         [int]$NumWarmup = 1000,
         [bool]$SaveWarmup = $false,
         [int]$Thin = 1,
-        [int]$RandomSeed = 1234
+        [int]$RandomSeed = 1234,
+        [string]$Option = ""
     )
 
     if ($OutputFile.IndexOf("{0}") -eq -1) {
@@ -149,8 +150,7 @@ function Start-StanSampling {
         $executable = $ModelPath -replace "\.[^.]+$", ".exe"
     }
 
-    $commandLine = "$executable sample num_samples=$NumSamples num_warmup=$NumWarmup save_warmup=$([int]$SaveWarmup) thin=$Thin data file='$DataFile' random seed=$RandomSeed output file='$OutputFile' id={1}"
-    Write-Verbose $commandLine
+    $commandLine = "$executable sample num_samples=$NumSamples num_warmup=$NumWarmup save_warmup=$([int]$SaveWarmup) thin=$Thin data file='$DataFile' random seed=$RandomSeed output file='$OutputFile' id={1} $Option"
 
     if ($Parallel -and $ChainCount -gt 1) {
         $tasks = @()
