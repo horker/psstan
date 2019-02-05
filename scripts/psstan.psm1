@@ -153,13 +153,14 @@ function Start-StanSampling {
     $commandLine = "$executable sample num_samples=$NumSamples num_warmup=$NumWarmup save_warmup=$([int]$SaveWarmup) thin=$Thin data file='$DataFile' random seed=$RandomSeed output file='$OutputFile' id={1} $Option"
 
     $stripped = "_stripped"
+    $exitCodes = @()
     if ($Parallel -and $ChainCount -gt 1) {
         $tasks = @()
 
         try {
             for ($chain = 2; $chain -le $ChainCount; ++$chain) {
                 $c = $commandLine -f $chain, $chain
-                $c = $c + " > " + ($ConsoleFile -f $chain)
+                $c = $c + " > $($ConsoleFile -f $chain); `$LastExitCode"
                 Write-Verbose $c
 
                 $ps = [PowerShell]::Create("NewRunspace").AddScript($c)
@@ -173,10 +174,11 @@ function Start-StanSampling {
             $c = $commandLine -f 1, 1
             Write-Verbose $c
             Invoke-Expression $c | Tee-Object -LiteralPath ($ConsoleFile -f 1)
+            $exitCodes = @($LastExitCode)
         }
         finally {
             foreach ($t in $tasks) {
-                [void]$t["PowerShell"].EndInvoke($t["Result"])
+                $exitCodes += $t["PowerShell"].EndInvoke($t["Result"])[0]
                 $t["PowerShell"].Dispose()
             }
         }
@@ -190,6 +192,7 @@ function Start-StanSampling {
             $c = $commandLine -f $chain, $chain
             Write-Verbose $c
             Invoke-Expression $c
+            $exitCodes += $LastExitCode
             Strip-Output ($OutputFile -f $chain) ($OutputFile -f "$stripped$chain") $chain
         }
     }
@@ -197,6 +200,10 @@ function Start-StanSampling {
     Get-Content ($OutputFile -f "$($stripped)1") -Total 1 | Set-Content $CombinedFile
     for ($chain = 1; $chain -le $ChainCount; ++$chain) {
         Get-Content ($OutputFile -f "$stripped$chain") | Select-Object -Skip 1 | Add-Content $CombinedFile
+    }
+
+    if ($exitCodes -ne 0) {
+        Write-Error "There are sampling chains that exited with non-zero exit codes; Consult console output files ($($exitCodes -join ", "))"
     }
 }
 
