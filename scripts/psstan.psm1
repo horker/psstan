@@ -127,12 +127,12 @@ function Start-StanSampling {
     )
 
     if ($OutputFile.IndexOf("{0}") -eq -1) {
-        Write-Error "The -OutputFile parameter should contain '{0}' as placeholder of the chain count"
+        Write-Error "The -OutputFile parameter should contain '{0}' as the placeholder of the chain count"
         exit
     }
 
     if ($ConsoleFile.IndexOf("{0}") -eq -1) {
-        Write-Error "The -ConsoleFile parameter should contain '{0}' as placeholder of the chain count"
+        Write-Error "The -ConsoleFile parameter should contain '{0}' as the placeholder of the chain count"
         exit
     }
 
@@ -152,12 +152,13 @@ function Start-StanSampling {
 
     $commandLine = "$executable sample num_samples=$NumSamples num_warmup=$NumWarmup save_warmup=$([int]$SaveWarmup) thin=$Thin data file='$DataFile' random seed=$RandomSeed output file='$OutputFile' id={1} $Option"
 
+    $stripped = "_stripped"
     if ($Parallel -and $ChainCount -gt 1) {
         $tasks = @()
 
         try {
             for ($chain = 2; $chain -le $ChainCount; ++$chain) {
-                $c = $commandLine -f "_orig$chain", $chain
+                $c = $commandLine -f $chain, $chain
                 $c = $c + " > " + ($ConsoleFile -f $chain)
                 Write-Verbose $c
 
@@ -169,7 +170,8 @@ function Start-StanSampling {
                 }
             }
 
-            $c = $commandLine -f "_orig1", 1
+            $c = $commandLine -f 1, 1
+            Write-Verbose $c
             Invoke-Expression $c | Tee-Object -LiteralPath ($ConsoleFile -f 1)
         }
         finally {
@@ -180,21 +182,21 @@ function Start-StanSampling {
         }
 
         for ($chain = 1; $chain -le $ChainCount; ++$chain) {
-            Strip-Output ($OutputFile -f "_orig$chain") ($OutputFile -f $chain) $chain
+            Strip-Output ($OutputFile -f $chain) ($OutputFile -f "$stripped$chain") $chain
         }
     }
     else {
         for ($chain = 1; $chain -le $ChainCount; ++$chain) {
-            $c = $commandLine -f "_orig$chain", $chain
+            $c = $commandLine -f $chain, $chain
             Write-Verbose $c
             Invoke-Expression $c
-            Strip-Output ($OutputFile -f "_orig$chain") ($OutputFile -f $chain) $chain
+            Strip-Output ($OutputFile -f $chain) ($OutputFile -f "$stripped$chain") $chain
         }
     }
 
-    Get-Content ($OutputFile -f 1) -Total 1 | Set-Content $CombinedFile
+    Get-Content ($OutputFile -f "$($stripped)1") -Total 1 | Set-Content $CombinedFile
     for ($chain = 1; $chain -le $ChainCount; ++$chain) {
-        Get-Content ($OutputFile -f $chain) | Select-Object -Skip 1 | Add-Content $CombinedFile
+        Get-Content ($OutputFile -f "$stripped$chain") | Select-Object -Skip 1 | Add-Content $CombinedFile
     }
 }
 
