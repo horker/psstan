@@ -62,6 +62,7 @@ function script:Invoke-StanSummary {
     try {
         $env:Path = $global:PSSTAN_TOOLS_PATHS -join ";"
         $commandLine = "$global:PSSTAN_PATH\bin\stansummary '$Path' $($options -join " ")"
+        Write-Verbose $commandLine
         Invoke-Expression $commandLine
     }
     finally {
@@ -116,7 +117,7 @@ function Start-StanSampling {
         [int]$ChainCount = 1,
         [string]$OutputFile = "output{0}.csv",
         [string]$CombinedFile = "combined.csv",
-        [string]$ConsoleFile = "console_output{0}.csv",
+        [string]$ConsoleFile = $null,
         [switch]$Parallel,
         [int]$NumSamples = 1000,
         [int]$NumWarmup = 1000,
@@ -131,7 +132,7 @@ function Start-StanSampling {
         exit
     }
 
-    if ($ConsoleFile.IndexOf("{0}") -eq -1) {
+    if (-not [string]::IsNullOrEmpty($ConsoleFile) -and $ConsoleFile.IndexOf("{0}") -eq -1) {
         Write-Error "The -ConsoleFile parameter should contain '{0}' as the placeholder of the chain count"
         exit
     }
@@ -140,7 +141,9 @@ function Start-StanSampling {
     $DataFile = Resolve-Path $DataFile
     $OutputFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputFile)
     $CombinedFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($CombinedFile)
-    $ConsoleFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ConsoleFile)
+    if (-not [string]::IsNullOrEmpty($ConsoleFile)) {
+        $ConsoleFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ConsoleFile)
+    }
 
     if ($ModelPath.EndsWith(".exe")) {
         $executable = $ModelPath
@@ -160,7 +163,12 @@ function Start-StanSampling {
         try {
             for ($chain = 2; $chain -le $ChainCount; ++$chain) {
                 $c = $commandLine -f $chain, $chain
-                $c = $c + " > $($ConsoleFile -f $chain); `$LastExitCode"
+                if ([string]::IsNullOrEmpty($ConsoleFile)) {
+                    $c += ">`$null; `$LastExitCode"
+                }
+                else {
+                    $c += " > $($ConsoleFile -f $chain); `$LastExitCode"
+                }
                 Write-Verbose $c
 
                 $ps = [PowerShell]::Create("NewRunspace").AddScript($c)
@@ -173,7 +181,12 @@ function Start-StanSampling {
 
             $c = $commandLine -f 1, 1
             Write-Verbose $c
-            Invoke-Expression $c | Tee-Object -LiteralPath ($ConsoleFile -f 1)
+            if (-not [string]::IsNullOrEmpty($ConsoleFile)) {
+                Invoke-Expression $c | Tee-Object -LiteralPath ($ConsoleFile -f 1)
+            }
+            else {
+                Invoke-Expression $c
+            }
             $exitCodes = @($LastExitCode)
         }
         finally {
