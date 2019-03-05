@@ -40,6 +40,24 @@ As input file, you can specifiy a `.stan` model file or a target `.exe` executab
 -----
 
 ```PowerShell
+Start-StanSampling [-ModelFile] <string> [-DataFile] <string> [[-ChainCount] <int>] [[-OutputFile] <string>] [[-CombinedFile] <string>] [[-ConsoleFile] <string>] [[-Parallel]] [[-NumSamples] <int>] [[-NumWarmup] <int>] [[-SaveWarmup] <bool>] [[-Thin] <int>] [[-RandomSeed] <int>] [[-Option] <string>]
+```
+
+This cmdlet starts sampling based on the model file specified by the `-ModelFile` parameter. When the executable corresponding to the model file does not exist or is older than it, the cmdlet will compile the model file.
+
+The result of sampling is written to the file specified by the `-OUtputFile` parameter. The value of the `-OUtputFile` parameter should contain '`{0}`' as the placeholder of a sampling chain. The default value of the `-OUtputFile` parameter is `output{0}.csv` (The output file names will be `output1.csv`, `output2.csv` and so on).
+
+Additionally, the stripped versions of the outputs (that is, without any diagnosis information in them) are saved. Their file names end with `_stripped`.
+
+You can specify the number of sampling chains by the `-ChainCount` parameter. If you add the `-Parallel` switch parameter, each sampling chain is running in parallel.
+
+The outputs of all chains are combined to a single file and saved to the file specified by the `-CombinedFile` parameter. The default value of the `-CombinedFile` parameter is `combined.csv`.
+
+The other parameters take the same effects as those of the original cmdstan executable.
+
+----
+
+```PowerShell
 Show-StanSummary [-Path] <string> [[-SigFig] <int>] [[-Autocorr] <int>] [[-CsvFile] <string>]
 ```
 
@@ -79,15 +97,19 @@ The following session shows how to compile and train the `bernoulli.stan` model 
 
 ```PowerShell
 PS> cd C:\your_app_path\cmdstan\examples\bernoulli
-PS> New-StanExecutable bernoulli.stan
+PS> Start-StanSampling bernoulli.stan -ChainCount 2 -Parallel
 :
 (snip)
 :
-PS> .\bernoulli.exe sample data file=bernoulli.data.R
-:
-(snip)
-:
-PS> Show-StanSummary output.csv
+PS> dir *.csv | fw
+
+    Directory: C:\your_app_path\cmdstan\examples\bernoulli
+
+combined.csv          output1.csv
+output2.csv           output_stripped1.csv
+output_stripped1.csv
+
+PS> Show-StanSummary output1.csv
 Inference for Stan model: bernoulli_model
 1 chains: each with iter=(1000); warmup=(0); thin=(1); 1000 iterations saved.
 
@@ -109,7 +131,7 @@ For each parameter, N_Eff is a crude measure of effective sample size,
 and R_hat is the potential scale reduction factor on split chains (at
 convergence, R_hat=1).
 
-PS> $params = Get-StanSummary output.csv
+PS> $params = Get-StanSummary output1.csv
 PS> $params.theta
 
 name    : theta
@@ -158,6 +180,11 @@ struct <- structure(c(1, 0, 0, 0, 1, 0, 0, 0, 1), .Dim = c(3, 3))
 zero_values <- double(10)
 range <- 100:200
 ```
+
+## To-Do
+
+- Documentation
+- Jugged array support in `New-StanData`
 
 ## License
 

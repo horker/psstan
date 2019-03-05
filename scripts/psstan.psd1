@@ -9,7 +9,7 @@
 RootModule = 'psstan.psm1'
 
 # Version number of this module.
-ModuleVersion = '0.2.0'
+ModuleVersion = '0.3.0'
 
 # Supported PSEditions
 #CompatiblePSEditions = ''
@@ -128,6 +128,9 @@ First release
 
 v0.2.0
 Several fixes
+
+v0.3.0
+New cmdlet 'Start-StanSampling' added
 "@
 
     } # End of PSData hashtable
