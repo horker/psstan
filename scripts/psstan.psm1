@@ -111,19 +111,30 @@ function Start-StanSampling {
     [CmdletBinding()]
     param(
         [Parameter(Position = 0, Mandatory = $true)]
-        [string]$ModelPath,
+        [string]$ModelFile,
         [Parameter(Position = 1, Mandatory = $true)]
         [string]$DataFile,
+        [Parameter(Position = 2, Mandatory = $false)]
         [int]$ChainCount = 1,
+        [Parameter(Position = 3, Mandatory = $false)]
         [string]$OutputFile = "output{0}.csv",
+        [Parameter(Position = 4, Mandatory = $false)]
         [string]$CombinedFile = "combined.csv",
+        [Parameter(Position = 5, Mandatory = $false)]
         [string]$ConsoleFile = $null,
+        [Parameter(Position = 6, Mandatory = $false)]
         [switch]$Parallel,
+        [Parameter(Position = 7, Mandatory = $false)]
         [int]$NumSamples = 1000,
+        [Parameter(Position = 8, Mandatory = $false)]
         [int]$NumWarmup = 1000,
+        [Parameter(Position = 9, Mandatory = $false)]
         [bool]$SaveWarmup = $false,
+        [Parameter(Position = 10, Mandatory = $false)]
         [int]$Thin = 1,
+        [Parameter(Position = 11, Mandatory = $false)]
         [int]$RandomSeed = 1234,
+        [Parameter(Position = 12, Mandatory = $false)]
         [string]$Option = ""
     )
 
@@ -137,7 +148,7 @@ function Start-StanSampling {
         exit
     }
 
-    $ModelPath = Resolve-Path $ModelPath
+    $ModelFile = Resolve-Path $ModelFile
     $DataFile = Resolve-Path $DataFile
     $OutputFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputFile)
     $CombinedFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($CombinedFile)
@@ -145,12 +156,12 @@ function Start-StanSampling {
         $ConsoleFile = $PSCmdlet.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ConsoleFile)
     }
 
-    if ($ModelPath.EndsWith(".exe")) {
-        $executable = $ModelPath
+    if ($ModelFile.EndsWith(".exe")) {
+        $executable = $ModelFile
     }
     else {
-        New-StanExecutable $ModelPath
-        $executable = $ModelPath -replace "\.[^.]+$", ".exe"
+        New-StanExecutable $ModelFile
+        $executable = $ModelFile -replace "\.[^.]+$", ".exe"
     }
 
     $commandLine = "$executable sample num_samples=$NumSamples num_warmup=$NumWarmup save_warmup=$([int]$SaveWarmup) thin=$Thin data file='$DataFile' random seed=$RandomSeed output file='$OutputFile' id={1} $Option"
