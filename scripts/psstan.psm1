@@ -259,14 +259,25 @@ function Get-StanSummary {
         [string]$Path,
 
         [Parameter(Position = 1, Mandatory = $false)]
-        [int]$Autocorr
+        [int]$Autocorr,
+
+        [Parameter(Position = 2, Mandatory = $false)]
+        [string]$CsvFile
     )
 
-    $file = [IO.Path]::GetTempFileName()
-    $PSBoundParameters.Add("CsvFile", $file)
+    if (-not $PSBoundParameters.ContainsKey("CsvFile")) {
+        $CsvFile = [IO.Path]::GetTempFileName()
+        $PSBoundParameters.Add("CsvFile", $CsvFile)
+    }
+    else {
+        If (Test-Path $CsvFile) {
+            Remove-Item $CsvFile
+        }
+    }
+
     $null = Invoke-StanSummary $PSBoundParameters
 
-    $parameters = Get-Content $file |
+    $parameters = Get-Content $CsvFile |
         Where-Object { $_ -NotMatch "^#" } |
         ConvertFrom-Csv
 
