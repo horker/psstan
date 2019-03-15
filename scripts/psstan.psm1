@@ -160,14 +160,19 @@ function Start-StanSampling {
         $executable = $ModelFile
     }
     else {
+        Write-Output "***** Compiling model file"
         New-StanExecutable $ModelFile
         $executable = $ModelFile -replace "\.[^.]+$", ".exe"
     }
+
+    Write-Output "***** Starting sampling"
 
     $commandLine = "$executable sample num_samples=$NumSamples num_warmup=$NumWarmup save_warmup=$([int]$SaveWarmup) thin=$Thin data file='$DataFile' random seed=$RandomSeed output file='$OutputFile' id={1} $Option"
 
     $stripped = "_stripped"
     $exitCodes = @()
+    $exitMessage = "***** Chain {0} of {1} completed with exit code {2}"
+
     if ($Parallel -and $ChainCount -gt 1) {
         $tasks = @()
 
@@ -185,6 +190,7 @@ function Start-StanSampling {
                 $ps = [PowerShell]::Create("NewRunspace").AddScript($c)
 
                 $tasks += @{
+                    Chain = $chain
                     PowerShell = $ps
                     Result = $ps.BeginInvoke()
                 }
@@ -199,11 +205,15 @@ function Start-StanSampling {
                 Invoke-Expression $c
             }
             $exitCodes = @($LastExitCode)
+
+            Write-Output ($exitMessage -f 1, $ChainCount, $LastExitCode)
         }
         finally {
             foreach ($t in $tasks) {
-                $exitCodes += $t["PowerShell"].EndInvoke($t["Result"])[0]
+                $exitCode = $t["PowerShell"].EndInvoke($t["Result"])[0]
+                $exitCodes += $exitCode
                 $t["PowerShell"].Dispose()
+                Write-Output ($exitMessage -f $t["Chain"], $ChainCount, $exitCode)
             }
         }
 
